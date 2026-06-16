@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>筋トレ記録アプリ</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            margin: 0; 
+            background-color: #f2f2f7; 
+            padding-bottom: 80px; 
+        }
+        header { 
+            background: #000; 
+            color: #fff; 
+            padding: 20px; 
+            text-align: center; 
+            font-weight: bold; 
+        }
+        .container { padding: 15px; }
+        .card { 
+            background: #fff; 
+            padding: 20px; 
+            margin-bottom: 12px; 
+            border-radius: 12px; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+        }
+        .nav { 
+            position: fixed; 
+            bottom: 0; 
+            width: 100%; 
+            background: #fff; 
+            display: flex; 
+            justify-content: space-around; 
+            padding: 20px 0; 
+            border-top: 1px solid #e5e5e5;
+        }
+        button {
+            background-color: #007aff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+    <header>筋トレ記録</header>
+
+    <div class="container">
+        </div>
+
+    <div class="nav">
+        <span>一覧</span>
+        <button onclick="document.getElementById('modal').style.display='block'">＋記録</button>
+        <span>設定</span>
+    </div>
+
+    <div id="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5);">
+        <div style="background: white; margin: 30% auto; padding: 20px; width: 80%; border-radius: 10px;">
+            <h3>新規記録</h3>
+            <input type="text" id="exerciseName" placeholder="種目名" style="width: 100%; margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 5px;"><br>
+            <input type="number" id="weight" placeholder="重量(kg)" style="width: 45%; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
+            <input type="number" id="reps" placeholder="回数" style="width: 45%; padding: 10px; border: 1px solid #ccc; border-radius: 5px;"><br>
+            <button onclick="addRecord()" style="margin-top: 15px; width: 100%;">保存する</button>
+            <button onclick="document.getElementById('modal').style.display='none'" style="width: 100%; margin-top: 10px; background-color: #ccc;">閉じる</button>
+        </div>
+    </div>
+
+    <script>
+        // ページを開いたときにデータを読み込む
+        window.onload = function() {
+            const data = JSON.parse(localStorage.getItem('trainingData') || '[]');
+            data.forEach(item => addCard(item.name, item.weight, item.reps));
+        };
+
+        function addRecord() {
+            const name = document.getElementById('exerciseName').value;
+            const weight = document.getElementById('weight').value;
+            const reps = document.getElementById('reps').value;
+
+            if(!name || !weight || !reps) return alert("全て入力してください");
+
+            addCard(name, weight, reps);
+
+            // データを保存
+            const data = JSON.parse(localStorage.getItem('trainingData') || '[]');
+            data.push({ name, weight, reps });
+            localStorage.setItem('trainingData', JSON.stringify(data));
+
+            // 入力欄をリセットして閉じる
+            document.getElementById('exerciseName').value = '';
+            document.getElementById('weight').value = '';
+            document.getElementById('reps').value = '';
+            document.getElementById('modal').style.display = 'none';
+        }
+
+        function addCard(name, weight, reps) {
+            const container = document.querySelector('.container');
+            const newCard = document.createElement('div');
+            newCard.className = 'card';
+            newCard.innerHTML = `<h3>${name}</h3><p>${weight}kg / ${reps}回 / 3セット</p>`;
+            container.appendChild(newCard);
+        }
+    </script>
+</body>
+</html>
