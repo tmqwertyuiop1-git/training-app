@@ -6,46 +6,13 @@
     <title>筋トレ記録アプリ</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-            margin: 0; 
-            background-color: #f2f2f7; 
-            padding-bottom: 80px; 
-        }
-        header { 
-            background: #000; 
-            color: #fff; 
-            padding: 20px; 
-            text-align: center; 
-            font-weight: bold; 
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background-color: #f2f2f7; padding-bottom: 80px; }
+        header { background: #000; color: #fff; padding: 20px; text-align: center; font-weight: bold; }
         .container { padding: 15px; }
-        .card { 
-            background: #fff; 
-            padding: 20px; 
-            margin-bottom: 12px; 
-            border-radius: 12px; 
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
-        }
-        .nav { 
-            position: fixed; 
-            bottom: 0; 
-            width: 100%; 
-            background: #fff; 
-            display: flex; 
-            justify-content: space-around; 
-            padding: 20px 0; 
-            border-top: 1px solid #e5e5e5;
-        }
-        button {
-            background-color: #007aff;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-        }
+        .card { background: #fff; padding: 20px; margin-bottom: 12px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .nav { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; justify-content: space-around; padding: 20px 0; border-top: 1px solid #e5e5e5; }
+        button { background-color: #007aff; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 16px; font-weight: 600; }
+        .preset-btn { background-color: #5856d6; padding: 5px 10px; font-size: 12px; margin-right: 5px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -54,7 +21,6 @@
 
     <div class="container">
         <canvas id="myChart" style="background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);"></canvas>
-        
         <div id="cardList"></div>
     </div>
 
@@ -65,8 +31,12 @@
     </div>
 
     <div id="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5);">
-        <div style="background: white; margin: 30% auto; padding: 20px; width: 80%; border-radius: 10px;">
+        <div style="background: white; margin: 20% auto; padding: 20px; width: 85%; border-radius: 12px;">
             <h3>新規記録</h3>
+            <div style="margin-bottom: 10px;">
+                <button class="preset-btn" onclick="setExercise('ベンチプレス')">ベンチプレス</button>
+                <button class="preset-btn" onclick="setExercise('スクワット')">スクワット</button>
+            </div>
             <input type="text" id="exerciseName" placeholder="種目名" style="width: 100%; margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 5px;"><br>
             <input type="number" id="weight" placeholder="重量(kg)" style="width: 45%; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
             <input type="number" id="reps" placeholder="回数" style="width: 45%; padding: 10px; border: 1px solid #ccc; border-radius: 5px;"><br>
@@ -76,9 +46,9 @@
     </div>
 
 <script>
-    window.onload = function() {
-        renderAll();
-    };
+    window.onload = function() { renderAll(); };
+
+    function setExercise(name) { document.getElementById('exerciseName').value = name; }
 
     function renderAll() {
         renderCards();
@@ -89,23 +59,18 @@
         const list = document.getElementById('cardList');
         list.innerHTML = '';
         const data = JSON.parse(localStorage.getItem('trainingData') || '[]');
-        data.forEach((item, index) => addCard(item.name, item.weight, item.reps, index));
+        data.forEach((item, index) => addCard(item.date, item.name, item.weight, item.reps, index));
     }
 
     function updateChart() {
         const data = JSON.parse(localStorage.getItem('trainingData') || '[]');
-        const labels = data.map((item, index) => item.name);
+        const labels = data.map(item => item.name);
         const values = data.map(item => item.weight * item.reps * 3);
-
         const ctx = document.getElementById('myChart').getContext('2d');
         if (window.myChartInstance) window.myChartInstance.destroy();
-
         window.myChartInstance = new Chart(ctx, {
             type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [{ label: '総負荷量(kg)', data: values, backgroundColor: '#007aff' }]
-            },
+            data: { labels: labels, datasets: [{ label: '総負荷量(kg)', data: values, backgroundColor: '#007aff' }] },
             options: { responsive: true }
         });
     }
@@ -114,26 +79,27 @@
         const name = document.getElementById('exerciseName').value;
         const weight = document.getElementById('weight').value;
         const reps = document.getElementById('reps').value;
+        const date = new Date().toLocaleDateString();
 
         if(!name || !weight || !reps) return alert("全て入力してください");
 
         const data = JSON.parse(localStorage.getItem('trainingData') || '[]');
-        data.push({ name, weight, reps });
+        data.push({ date, name, weight, reps });
         localStorage.setItem('trainingData', JSON.stringify(data));
 
         document.getElementById('exerciseName').value = '';
         document.getElementById('weight').value = '';
         document.getElementById('reps').value = '';
         document.getElementById('modal').style.display = 'none';
-
         renderAll();
     }
 
-    function addCard(name, weight, reps, index) {
+    function addCard(date, name, weight, reps, index) {
         const list = document.getElementById('cardList');
         const newCard = document.createElement('div');
         newCard.className = 'card';
         newCard.innerHTML = `
+            <small style="color: #8e8e93;">${date}</small>
             <h3>${name}</h3>
             <p>${weight}kg / ${reps}回 / 3セット</p>
             <button onclick="deleteRecord(${index})" style="background-color: #ff3b30; color: white; border: none; padding: 5px 10px; border-radius: 5px; font-size: 12px;">削除</button>
