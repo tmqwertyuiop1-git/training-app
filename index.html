@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>筋トレ記録アプリ</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { 
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
@@ -52,7 +53,10 @@
     <header>筋トレ記録</header>
 
     <div class="container">
-        </div>
+        <canvas id="myChart" style="background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);"></canvas>
+        
+        <div id="cardList"></div>
+    </div>
 
     <div class="nav">
         <span>一覧</span>
@@ -71,17 +75,39 @@
         </div>
     </div>
 
- <script>
-    // ページを開いたときにデータを読み込む
+<script>
     window.onload = function() {
-        renderCards();
+        renderAll();
     };
 
+    function renderAll() {
+        renderCards();
+        updateChart();
+    }
+
     function renderCards() {
-        const container = document.querySelector('.container');
-        container.innerHTML = ''; // 一度中身を空にする
+        const list = document.getElementById('cardList');
+        list.innerHTML = '';
         const data = JSON.parse(localStorage.getItem('trainingData') || '[]');
         data.forEach((item, index) => addCard(item.name, item.weight, item.reps, index));
+    }
+
+    function updateChart() {
+        const data = JSON.parse(localStorage.getItem('trainingData') || '[]');
+        const labels = data.map((item, index) => item.name);
+        const values = data.map(item => item.weight * item.reps * 3);
+
+        const ctx = document.getElementById('myChart').getContext('2d');
+        if (window.myChartInstance) window.myChartInstance.destroy();
+
+        window.myChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{ label: '総負荷量(kg)', data: values, backgroundColor: '#007aff' }]
+            },
+            options: { responsive: true }
+        });
     }
 
     function addRecord() {
@@ -91,22 +117,20 @@
 
         if(!name || !weight || !reps) return alert("全て入力してください");
 
-        // データを保存
         const data = JSON.parse(localStorage.getItem('trainingData') || '[]');
         data.push({ name, weight, reps });
         localStorage.setItem('trainingData', JSON.stringify(data));
 
-        // フォームをリセットして閉じる
         document.getElementById('exerciseName').value = '';
         document.getElementById('weight').value = '';
         document.getElementById('reps').value = '';
         document.getElementById('modal').style.display = 'none';
 
-        renderCards(); // 画面を再描画
+        renderAll();
     }
 
     function addCard(name, weight, reps, index) {
-        const container = document.querySelector('.container');
+        const list = document.getElementById('cardList');
         const newCard = document.createElement('div');
         newCard.className = 'card';
         newCard.innerHTML = `
@@ -114,15 +138,15 @@
             <p>${weight}kg / ${reps}回 / 3セット</p>
             <button onclick="deleteRecord(${index})" style="background-color: #ff3b30; color: white; border: none; padding: 5px 10px; border-radius: 5px; font-size: 12px;">削除</button>
         `;
-        container.appendChild(newCard);
+        list.appendChild(newCard);
     }
 
     function deleteRecord(index) {
         if(!confirm("本当に削除しますか？")) return;
         const data = JSON.parse(localStorage.getItem('trainingData') || '[]');
-        data.splice(index, 1); // 指定した番号のデータを1つ削除
+        data.splice(index, 1);
         localStorage.setItem('trainingData', JSON.stringify(data));
-        renderCards(); // 画面を再描画
+        renderAll();
     }
 </script>
 </body>
