@@ -14,34 +14,14 @@
         button { background-color: #007aff; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 16px; font-weight: 600; }
         .preset-btn { background-color: #5856d6; padding: 5px 10px; font-size: 12px; margin: 2px; }
         
-        /* 新しく追加：ウォームアップエリアのスタイル */
-        .warmup-container {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 15px;
-        }
+        .warmup-container { display: flex; justify-content: space-between; margin-bottom: 15px; }
         .warmup-btn {
-            background-color: #fff;
-            color: #333;
-            width: 48%; /* 横幅を半分ずつに分ける */
-            padding: 15px 10px;
-            border-radius: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            text-align: center;
-            text-decoration: none; /* リンクの下線を消す */
-            display: block;
-            box-sizing: border-box;
+            background-color: #fff; color: #333; width: 48%; padding: 15px 10px;
+            border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            text-align: center; text-decoration: none; display: block; box-sizing: border-box;
         }
-        .warmup-icon {
-            font-size: 32px;
-            display: block;
-            margin-bottom: 5px;
-        }
-        .warmup-label {
-            font-size: 12px;
-            font-weight: bold;
-            color: #666;
-        }
+        .warmup-icon { font-size: 32px; display: block; margin-bottom: 5px; }
+        .warmup-label { font-size: 12px; font-weight: bold; color: #666; }
     </style>
 </head>
 <body>
@@ -68,7 +48,7 @@
         <h2>設定</h2>
         <div class="card">
             <h3>種目プリセット追加</h3>
-            <input type="text" id="newPreset" placeholder="種目名" style="padding: 10px; width: 60%;">
+            <input type="text" id="newPreset" placeholder="種目名" style="padding: 10px; width: 60%; box-sizing: border-box;">
             <button onclick="addPreset()">追加</button>
         </div>
         <div id="presetList"></div>
@@ -76,7 +56,7 @@
 
     <div class="nav">
         <span onclick="showPage('list')">一覧</span>
-        <button onclick="document.getElementById('modal').style.display='block'">＋記録</button>
+        <button onclick="openModal()">＋記録</button>
         <span onclick="showPage('settings')">設定</span>
     </div>
 
@@ -84,10 +64,18 @@
         <div style="background: white; margin: 20% auto; padding: 20px; width: 85%; border-radius: 12px;">
             <h3>新規記録</h3>
             <div id="presetButtons" style="margin-bottom: 10px;"></div>
-            <input type="text" id="exerciseName" placeholder="種目名" style="width: 100%; margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 5px;"><br>
-            <input type="number" id="weight" placeholder="重量(kg)" style="width: 45%; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
-            <input type="number" id="reps" placeholder="回数" style="width: 45%; padding: 10px; border: 1px solid #ccc; border-radius: 5px;"><br>
-            <button onclick="addRecord()" style="margin-top: 15px; width: 100%;">保存する</button>
+            
+            <input type="date" id="recordDate" style="width: 100%; margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
+            
+            <input type="text" id="exerciseName" placeholder="種目名" style="width: 100%; margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
+            
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <input type="number" id="weight" placeholder="重量(kg)" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
+                <input type="number" id="reps" placeholder="回数" value="10" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
+                <input type="number" id="sets" placeholder="セット" value="3" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
+            </div>
+            
+            <button onclick="addRecord()" style="width: 100%;">保存する</button>
             <button onclick="document.getElementById('modal').style.display='none'" style="width: 100%; margin-top: 10px; background-color: #ccc;">閉じる</button>
         </div>
     </div>
@@ -99,6 +87,16 @@
         document.getElementById('listPage').style.display = page === 'list' ? 'block' : 'none';
         document.getElementById('settingsPage').style.display = page === 'settings' ? 'block' : 'none';
         if(page === 'settings') renderPresets();
+    }
+
+    // モーダルを開く時の処理（初期値のセット）
+    function openModal() {
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD形式
+        document.getElementById('recordDate').value = today;
+        document.getElementById('weight').value = ''; // 重量は空にする
+        document.getElementById('reps').value = '10'; // 回数はデフォルト10
+        document.getElementById('sets').value = '3';  // セット数はデフォルト3
+        document.getElementById('modal').style.display = 'block';
     }
 
     function renderAll() {
@@ -148,13 +146,17 @@
         const list = document.getElementById('cardList');
         list.innerHTML = '';
         const data = JSON.parse(localStorage.getItem('trainingData') || '[]');
-        data.forEach((item, index) => addCard(item.date, item.name, item.weight, item.reps, index));
+        data.forEach((item, index) => {
+            const sets = item.sets || 3; // 過去のデータにsetsがない場合は3を適用
+            addCard(item.date, item.name, item.weight, item.reps, sets, index);
+        });
     }
 
     function updateChart() {
         const data = JSON.parse(localStorage.getItem('trainingData') || '[]');
         const labels = data.map(item => item.name);
-        const values = data.map(item => item.weight * item.reps * 3);
+        const values = data.map(item => item.weight * item.reps * (item.sets || 3)); // 総負荷量の計算にセット数を反映
+        
         const ctx = document.getElementById('myChart').getContext('2d');
         if (window.myChartInstance) window.myChartInstance.destroy();
         window.myChartInstance = new Chart(ctx, {
@@ -165,32 +167,30 @@
     }
 
     function addRecord() {
+        const date = document.getElementById('recordDate').value;
         const name = document.getElementById('exerciseName').value;
         const weight = document.getElementById('weight').value;
         const reps = document.getElementById('reps').value;
-        const date = new Date().toLocaleDateString();
+        const sets = document.getElementById('sets').value;
 
-        if(!name || !weight || !reps) return alert("全て入力してください");
+        if(!date || !name || !weight || !reps || !sets) return alert("全て入力してください");
 
         const data = JSON.parse(localStorage.getItem('trainingData') || '[]');
-        data.push({ date, name, weight, reps });
+        data.push({ date, name, weight, reps, sets });
         localStorage.setItem('trainingData', JSON.stringify(data));
 
-        document.getElementById('exerciseName').value = '';
-        document.getElementById('weight').value = '';
-        document.getElementById('reps').value = '';
         document.getElementById('modal').style.display = 'none';
         renderAll();
     }
 
-    function addCard(date, name, weight, reps, index) {
+    function addCard(date, name, weight, reps, sets, index) {
         const list = document.getElementById('cardList');
         const newCard = document.createElement('div');
         newCard.className = 'card';
         newCard.innerHTML = `
             <small style="color: #8e8e93;">${date}</small>
             <h3>${name}</h3>
-            <p>${weight}kg / ${reps}回 / 3セット</p>
+            <p>${weight}kg / ${reps}回 / ${sets}セット</p>
             <button onclick="deleteRecord(${index})" style="background-color: #ff3b30; color: white; border: none; padding: 5px 10px; border-radius: 5px; font-size: 12px;">削除</button>
         `;
         list.appendChild(newCard);
