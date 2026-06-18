@@ -46,9 +46,20 @@
 
     <div id="settingsPage" class="container" style="display: none;">
         <h2>設定</h2>
+        
+        <div class="card">
+            <h3>入力のデフォルト値</h3>
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <input type="number" id="settingDefaultWeight" placeholder="重量(kg)" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
+                <input type="number" id="settingDefaultReps" placeholder="回数" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
+                <input type="number" id="settingDefaultSets" placeholder="セット" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
+            </div>
+            <button onclick="saveDefaults()" style="width: 100%;">デフォルト値を保存</button>
+        </div>
+
         <div class="card">
             <h3>種目プリセット追加</h3>
-            <input type="text" id="newPreset" placeholder="種目名" style="padding: 10px; width: 60%; box-sizing: border-box;">
+            <input type="text" id="newPreset" placeholder="種目名" style="padding: 10px; width: 60%; box-sizing: border-box; border: 1px solid #ccc; border-radius: 5px;">
             <button onclick="addPreset()">追加</button>
         </div>
         <div id="presetList"></div>
@@ -66,13 +77,12 @@
             <div id="presetButtons" style="margin-bottom: 10px;"></div>
             
             <input type="date" id="recordDate" style="width: 100%; margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
-            
             <input type="text" id="exerciseName" placeholder="種目名" style="width: 100%; margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
             
             <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                 <input type="number" id="weight" placeholder="重量(kg)" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
-                <input type="number" id="reps" placeholder="回数" value="10" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
-                <input type="number" id="sets" placeholder="セット" value="3" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
+                <input type="number" id="reps" placeholder="回数" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
+                <input type="number" id="sets" placeholder="セット" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
             </div>
             
             <button onclick="addRecord()" style="width: 100%;">保存する</button>
@@ -86,16 +96,39 @@
     function showPage(page) {
         document.getElementById('listPage').style.display = page === 'list' ? 'block' : 'none';
         document.getElementById('settingsPage').style.display = page === 'settings' ? 'block' : 'none';
-        if(page === 'settings') renderPresets();
+        if(page === 'settings') {
+            renderPresets();
+            loadDefaultsToSettings();
+        }
     }
 
-    // モーダルを開く時の処理（初期値のセット）
+    // デフォルト値の読み込みと設定画面への反映
+    function loadDefaultsToSettings() {
+        const defs = JSON.parse(localStorage.getItem('defaultValues') || '{"weight":"", "reps":"10", "sets":"3"}');
+        document.getElementById('settingDefaultWeight').value = defs.weight;
+        document.getElementById('settingDefaultReps').value = defs.reps;
+        document.getElementById('settingDefaultSets').value = defs.sets;
+    }
+
+    // デフォルト値の保存
+    function saveDefaults() {
+        const w = document.getElementById('settingDefaultWeight').value;
+        const r = document.getElementById('settingDefaultReps').value;
+        const s = document.getElementById('settingDefaultSets').value;
+        localStorage.setItem('defaultValues', JSON.stringify({weight: w, reps: r, sets: s}));
+        alert("デフォルト値を保存しました");
+    }
+
     function openModal() {
-        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD形式
+        const today = new Date().toISOString().split('T')[0];
         document.getElementById('recordDate').value = today;
-        document.getElementById('weight').value = ''; // 重量は空にする
-        document.getElementById('reps').value = '10'; // 回数はデフォルト10
-        document.getElementById('sets').value = '3';  // セット数はデフォルト3
+        
+        // 保存されたデフォルト値を呼び出してセットする
+        const defs = JSON.parse(localStorage.getItem('defaultValues') || '{"weight":"", "reps":"10", "sets":"3"}');
+        document.getElementById('weight').value = defs.weight;
+        document.getElementById('reps').value = defs.reps;
+        document.getElementById('sets').value = defs.sets;
+        
         document.getElementById('modal').style.display = 'block';
     }
 
@@ -147,21 +180,35 @@
         list.innerHTML = '';
         const data = JSON.parse(localStorage.getItem('trainingData') || '[]');
         data.forEach((item, index) => {
-            const sets = item.sets || 3; // 過去のデータにsetsがない場合は3を適用
+            const sets = item.sets || 3;
             addCard(item.date, item.name, item.weight, item.reps, sets, index);
         });
     }
 
     function updateChart() {
         const data = JSON.parse(localStorage.getItem('trainingData') || '[]');
-        const labels = data.map(item => item.name);
-        const values = data.map(item => item.weight * item.reps * (item.sets || 3)); // 総負荷量の計算にセット数を反映
         
+        // 日付ごとに総負荷量を集計するロジック
+        const aggregated = {};
+        data.forEach(item => {
+            // 日付をキーにする（YYYY-MM-DD や YYYY/MM/DD の形式）
+            const dateKey = item.date;
+            // 過去のデータでエラーが出ないように数値化、なければ0とする
+            const vol = (Number(item.weight) || 0) * (Number(item.reps) || 0) * (Number(item.sets) || 3);
+            
+            if(!aggregated[dateKey]) aggregated[dateKey] = 0;
+            aggregated[dateKey] += vol;
+        });
+
+        // 日付順に並び替える
+        const sortedDates = Object.keys(aggregated).sort();
+        const values = sortedDates.map(dateKey => aggregated[dateKey]);
+
         const ctx = document.getElementById('myChart').getContext('2d');
         if (window.myChartInstance) window.myChartInstance.destroy();
         window.myChartInstance = new Chart(ctx, {
             type: 'bar',
-            data: { labels: labels, datasets: [{ label: '総負荷量(kg)', data: values, backgroundColor: '#007aff' }] },
+            data: { labels: sortedDates, datasets: [{ label: '日別 総負荷量(kg)', data: values, backgroundColor: '#007aff' }] },
             options: { responsive: true }
         });
     }
