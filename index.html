@@ -13,6 +13,35 @@
         .nav { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; justify-content: space-around; padding: 20px 0; border-top: 1px solid #e5e5e5; }
         button { background-color: #007aff; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 16px; font-weight: 600; }
         .preset-btn { background-color: #5856d6; padding: 5px 10px; font-size: 12px; margin: 2px; }
+        
+        /* 新しく追加：ウォームアップエリアのスタイル */
+        .warmup-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        .warmup-btn {
+            background-color: #fff;
+            color: #333;
+            width: 48%; /* 横幅を半分ずつに分ける */
+            padding: 15px 10px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            text-align: center;
+            text-decoration: none; /* リンクの下線を消す */
+            display: block;
+            box-sizing: border-box;
+        }
+        .warmup-icon {
+            font-size: 32px;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .warmup-label {
+            font-size: 12px;
+            font-weight: bold;
+            color: #666;
+        }
     </style>
 </head>
 <body>
@@ -20,6 +49,17 @@
     <header>筋トレ記録</header>
 
     <div id="listPage" class="container">
+        <div class="warmup-container">
+            <a href="https://www1.nesty-gcloud.net/mf-fitness/?error=2" target="_blank" class="warmup-btn">
+                <span class="warmup-icon">📱</span>
+                <span class="warmup-label">入館QR</span>
+            </a>
+            <a href="https://youtu.be/fZJO5hYB0Tc?si=nwcTDGq9aUWLFcAD" target="_blank" class="warmup-btn">
+                <span class="warmup-icon">🧘</span>
+                <span class="warmup-label">ストレッチ</span>
+            </a>
+        </div>
+
         <canvas id="myChart" style="background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);"></canvas>
         <div id="cardList"></div>
     </div>
