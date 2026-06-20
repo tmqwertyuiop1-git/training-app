@@ -10,31 +10,28 @@
         header { background: #000; color: #fff; padding: 20px; text-align: center; font-weight: bold; position: relative; }
         .settings-icon { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); font-size: 20px; cursor: pointer; }
         .container { padding: 15px; }
-        .card { background: #fff; padding: 20px; margin-bottom: 12px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: relative; overflow: hidden; cursor: pointer; }
+        .card { background: #fff; padding: 20px; margin-bottom: 12px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: relative; cursor: pointer; }
         .card.gym { border-left: 6px solid #007aff; }
         .card.home { border-left: 6px solid #ff9500; }
         .nav { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; justify-content: space-around; padding: 20px 0; border-top: 1px solid #e5e5e5; z-index: 100; align-items: center; }
         .nav span { font-weight: bold; color: #666; font-size: 16px; cursor: pointer; }
         button { background-color: #007aff; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; }
-        .tab-container { display: flex; margin-bottom: 15px; border-radius: 8px; overflow: hidden; border: 1px solid #ccc; }
-        .tab-btn { flex: 1; padding: 10px; text-align: center; font-weight: bold; font-size: 14px; background-color: #f2f2f7; color: #333; cursor: pointer; }
-        .tab-btn.active.gym { background-color: #007aff; color: white; }
-        .tab-btn.active.home { background-color: #ff9500; color: white; }
-        .video-btn { background-color: #ffe0b2; color: #d84315; padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: bold; }
-        .inline-input { border: 1px solid #ccc; border-radius: 5px; padding: 6px; text-align: center; font-size: 14px; width: 60px; box-sizing: border-box; }
+        .inline-input { border: 1px solid #ccc; border-radius: 5px; padding: 6px; text-align: center; width: 60px; }
     </style>
 </head>
 <body>
+
     <header>筋トレ記録<span class="settings-icon" onclick="showPage('settings')">⚙️</span></header>
 
     <div id="listPage" class="container">
-        <canvas id="myChart" style="background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px;"></canvas>
+        <canvas id="myChart" style="background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);"></canvas>
         <div id="cardList"></div>
     </div>
 
     <div id="analysisPage" class="container" style="display: none;">
         <h2>体組成分析</h2>
         <div class="card">
+            <input type="hidden" id="editBodyIndex" value="-1">
             <input type="date" id="bodyLogDate" style="width: 100%; margin-bottom: 10px; padding: 10px;">
             <div style="display: flex; gap: 5px; margin-bottom: 10px;">
                 <input type="number" step="0.1" id="bodyWeight" placeholder="体重" style="flex:1; padding: 10px;">
@@ -61,88 +58,105 @@
     </div>
 
     <div id="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 200;">
-        <div style="background: white; margin: 15% auto; padding: 20px; width: 85%; border-radius: 12px; max-height: 80%; overflow-y: auto;">
-            <div class="tab-container">
-                <div id="tabGym" class="tab-btn active gym" onclick="selectSituation('ジム')">🏢 ジム</div>
-                <div id="tabHome" class="tab-btn" onclick="selectSituation('家')">🏠 家</div>
-            </div>
+        <div style="background: white; margin: 15% auto; padding: 20px; width: 85%; border-radius: 12px;">
+            <h3 id="modalTitle">記録</h3>
             <input type="hidden" id="editIndex" value="-1">
-            <input type="date" id="recordDate" style="width: 100%; padding: 10px; margin-bottom: 15px;">
-            <div id="gymInputArea">
-                <div id="presetCheckboxesArea"></div>
-            </div>
-            <div id="homeInputArea" style="display: none;">
-                <div style="margin-bottom: 10px; background: #fff5e6; padding: 10px; border-radius: 8px;">
-                    <label><input type="checkbox" class="home-check" value="腕"> 腕</label> <a href="..." target="_blank" class="video-btn">再生 ▶</a>
-                </div>
-                </div>
+            <input type="date" id="recordDate" style="width: 100%; padding: 10px; margin-bottom: 10px;">
+            <div id="inputArea"></div>
             <button onclick="saveRecord()" style="width: 100%;">保存する</button>
             <button onclick="document.getElementById('modal').style.display='none'" style="width: 100%; margin-top: 10px; background-color: #ccc;">閉じる</button>
         </div>
     </div>
 
 <script>
-    let currentSituation = 'ジム';
     window.onload = () => renderAll();
 
     function showPage(page) {
         document.getElementById('listPage').style.display = page === 'list' ? 'block' : 'none';
         document.getElementById('analysisPage').style.display = page === 'analysis' ? 'block' : 'none';
         document.getElementById('settingsPage').style.display = page === 'settings' ? 'block' : 'none';
-    }
-
-    function renderAll() {
-        const list = document.getElementById('cardList'); list.innerHTML = '';
-        const data = JSON.parse(localStorage.getItem('trainingData') || '[]');
-        data.forEach((item, index) => {
-            const div = document.createElement('div');
-            div.className = `card ${item.situation === 'ジム' ? 'gym' : 'home'}`;
-            div.onclick = () => openModal(item, index);
-            div.innerHTML = `<div>${item.date}</div><h3>${item.name}</h3><p>${item.weight||''} ${item.reps||''} ${item.sets||''}</p>`;
-            list.appendChild(div);
-        });
+        if(page === 'settings') renderSettings();
+        if(page === 'analysis') renderBodyLogs();
     }
 
     function openModal(item = null, index = -1) {
         document.getElementById('editIndex').value = index;
+        document.getElementById('modalTitle').innerText = index !== -1 ? "記録編集" : "新規記録";
+        document.getElementById('inputArea').innerHTML = `
+            <input type="text" id="name" value="${item ? item.name : ''}" placeholder="種目名" style="width: 100%; padding: 10px; margin-bottom: 10px; box-sizing:border-box;">
+            <div style="display:flex; gap:10px;">
+                <input type="number" id="weight" value="${item ? item.weight : ''}" placeholder="kg" style="flex:1; padding:10px; box-sizing:border-box;">
+                <input type="number" id="reps" value="${item ? item.reps : ''}" placeholder="回" style="flex:1; padding:10px; box-sizing:border-box;">
+                <input type="number" id="sets" value="${item ? item.sets : ''}" placeholder="Set" style="flex:1; padding:10px; box-sizing:border-box;">
+            </div>
+        `;
         document.getElementById('recordDate').value = item ? item.date : new Date().toISOString().split('T')[0];
         document.getElementById('modal').style.display = 'block';
-        renderPresetCheckboxesModal();
     }
 
-    async function saveRecord() {
+    function saveRecord() {
         const index = parseInt(document.getElementById('editIndex').value);
         const data = JSON.parse(localStorage.getItem('trainingData') || '[]');
-        const date = document.getElementById('recordDate').value;
-
-        if (currentSituation === 'ジム') {
-            document.querySelectorAll('.gym-check:checked').forEach(cb => {
-                const i = cb.getAttribute('data-index');
-                data.push({ date, situation: 'ジム', name: cb.value, weight: document.getElementById('gymWeight_'+i).value });
-            });
-        } else {
-            data.push({ date, situation: '家', name: "家トレ実施" });
-        }
+        const item = {
+            date: document.getElementById('recordDate').value,
+            name: document.getElementById('name').value,
+            weight: document.getElementById('weight').value,
+            reps: document.getElementById('reps').value,
+            sets: document.getElementById('sets').value
+        };
+        if (index !== -1) data[index] = item; else data.push(item);
         localStorage.setItem('trainingData', JSON.stringify(data));
         document.getElementById('modal').style.display = 'none';
         renderAll();
     }
 
-    function selectSituation(sit) {
-        currentSituation = sit;
-        document.getElementById('gymInputArea').style.display = sit === 'ジム' ? 'block' : 'none';
-        document.getElementById('homeInputArea').style.display = sit === '家' ? 'block' : 'none';
-    }
-
-    function renderPresetCheckboxesModal() {
-        const c = document.getElementById('presetCheckboxesArea'); c.innerHTML = '';
-        JSON.parse(localStorage.getItem('gymPresetsObj') || '[]').forEach((p, i) => {
-            c.innerHTML += `<div><input type="checkbox" class="gym-check" value="${p.name}" data-index="${i}"> ${p.name} <input type="number" id="gymWeight_${i}" class="inline-input" value="${p.weight}"></div>`;
+    function renderAll() {
+        const list = document.getElementById('cardList');
+        list.innerHTML = '';
+        const data = JSON.parse(localStorage.getItem('trainingData') || '[]');
+        data.forEach((item, index) => {
+            const div = document.createElement('div');
+            div.className = 'card gym';
+            div.onclick = () => openModal(item, index);
+            div.innerHTML = `<div>${item.date}</div><h3>${item.name}</h3><p>${item.weight}kg / ${item.reps}回 / ${item.sets}セット</p>`;
+            list.appendChild(div);
         });
     }
 
-    function saveBodyLog() { /* 履歴保存ロジック */ }
-    function renderBodyLogs() { /* 履歴表示ロジック */ }
+    function renderBodyLogs() {
+        const list = document.getElementById('bodyLogList');
+        list.innerHTML = '';
+        const logs = JSON.parse(localStorage.getItem('bodyDataObj') || '[]');
+        logs.forEach((log, index) => {
+            const div = document.createElement('div');
+            div.className = 'card';
+            div.onclick = () => {
+                document.getElementById('editBodyIndex').value = index;
+                document.getElementById('bodyLogDate').value = log.date;
+                document.getElementById('bodyWeight').value = log.weight;
+                document.getElementById('bodyFat').value = log.fat;
+                document.getElementById('bodyMuscle').value = log.muscle;
+            };
+            div.innerHTML = `${log.date}: ${log.weight}kg / ${log.fat}% / ${log.muscle}kg`;
+            list.appendChild(div);
+        });
+    }
+
+    function saveBodyLog() {
+        const index = parseInt(document.getElementById('editBodyIndex').value);
+        const logs = JSON.parse(localStorage.getItem('bodyDataObj') || '[]');
+        const newLog = {
+            date: document.getElementById('bodyLogDate').value,
+            weight: document.getElementById('bodyWeight').value,
+            fat: document.getElementById('bodyFat').value,
+            muscle: document.getElementById('bodyMuscle').value
+        };
+        if (index !== -1) logs[index] = newLog; else logs.push(newLog);
+        localStorage.setItem('bodyDataObj', JSON.stringify(logs));
+        renderBodyLogs();
+    }
+
+    function renderSettings() { /* お好みに応じてジムの種目設定を追加してください */ }
 </script>
 </body>
 </html>
