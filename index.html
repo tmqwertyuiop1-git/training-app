@@ -18,9 +18,9 @@
         .card.home { border-left: 6px solid #ff9500; }
         .card.none { border-left: 6px solid #ccc; }
 
-        .nav { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; justify-content: space-around; padding: 20px 0; border-top: 1px solid #e5e5e5; z-index: 100; }
+        .nav { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; justify-content: space-around; padding: 20px 0; border-top: 1px solid #e5e5e5; z-index: 100; align-items: center; }
+        .nav span { font-weight: bold; color: #666; font-size: 14px; }
         button { background-color: #007aff; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; }
-        .preset-btn { background-color: #5856d6; padding: 5px 10px; font-size: 12px; margin: 2px; }
         
         .warmup-container { display: flex; justify-content: space-between; margin-bottom: 15px; }
         .warmup-btn {
@@ -39,8 +39,8 @@
         
         .video-btn { background-color: #ffe0b2; color: #d84315; padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: bold; }
         
-        /* 設定画面のインライン編集用 */
-        .inline-input { border: 1px solid #ccc; border-radius: 4px; padding: 4px; text-align: center; font-size: 12px; }
+        /* インライン編集・入力用 */
+        .inline-input { border: 1px solid #ccc; border-radius: 5px; padding: 6px; text-align: center; font-size: 14px; box-sizing: border-box; }
     </style>
 </head>
 <body>
@@ -63,9 +63,26 @@
         <div id="cardList"></div>
     </div>
 
+    <div id="analysisPage" class="container" style="display: none;">
+        <h2>体組成分析</h2>
+        
+        <div class="card">
+            <h3>体組成を記録する</h3>
+            <input type="date" id="bodyLogDate" style="width: 100%; margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <input type="number" step="0.1" id="bodyWeight" placeholder="体重(kg)" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
+                <input type="number" step="0.1" id="bodyFat" placeholder="体脂肪(%)" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
+                <input type="number" step="0.1" id="bodyMuscle" placeholder="筋肉量(kg)" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
+            </div>
+            <button onclick="addBodyLog()" style="width: 100%; background-color: #5856d6;">データを保存</button>
+        </div>
+        
+        <h3>体組成履歴</h3>
+        <div id="bodyLogList"></div>
+    </div>
+
     <div id="settingsPage" class="container" style="display: none;">
         <h2>設定</h2>
-        
         <div class="card">
             <h3>【ジム】種目とデフォルト値</h3>
             <div style="display: flex; gap: 5px; margin-bottom: 15px;">
@@ -78,6 +95,7 @@
 
     <div class="nav">
         <span onclick="showPage('list')" style="cursor:pointer;">一覧</span>
+        <span onclick="showPage('analysis')" style="cursor:pointer;">分析</span>
         <button onclick="openModal()">＋記録</button>
         <span onclick="showPage('settings')" style="cursor:pointer;">設定</span>
     </div>
@@ -93,34 +111,25 @@
             <input type="date" id="recordDate" style="width: 100%; margin-bottom: 15px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
             
             <div id="gymInputArea">
-                <div id="presetButtonsArea" style="margin-bottom: 15px;"></div>
-                <input type="text" id="exerciseName" placeholder="種目名" style="width: 100%; margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
-                
-                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                    <input type="number" id="weight" placeholder="重量(kg)" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
-                    <input type="number" id="reps" placeholder="回数" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
-                    <input type="number" id="sets" placeholder="セット" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
-                </div>
+                <p style="font-size: 14px; font-weight: bold; margin-top: 0; color: #007aff;">今日実施した種目をチェック：</p>
+                <div id="presetCheckboxesArea" style="margin-bottom: 15px;"></div>
             </div>
 
             <div id="homeInputArea" style="display: none; margin-bottom: 15px;">
-                <p style="font-size: 14px; font-weight: bold; margin-top: 0;">今日実施した動画をチェック：</p>
+                <p style="font-size: 14px; font-weight: bold; margin-top: 0; color: #ff9500;">今日実施した動画をチェック：</p>
                 
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; background: #fff5e6; padding: 10px; border-radius: 8px;">
                     <label style="font-weight: bold;"><input type="checkbox" class="home-check" value="腕" style="transform: scale(1.3); margin-right: 8px;">腕</label>
                     <a href="https://www.youtube.com/watch?v=Fx12MRw9bqw&list=PLNWxlzcfjAbWaR3NgKrfjgLAigh8jRNzA&index=1" target="_blank" class="video-btn">動画を再生 ▶</a>
                 </div>
-                
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; background: #fff5e6; padding: 10px; border-radius: 8px;">
                     <label style="font-weight: bold;"><input type="checkbox" class="home-check" value="背中" style="transform: scale(1.3); margin-right: 8px;">背中</label>
                     <a href="https://www.youtube.com/watch?v=_qZccBRFm6I&list=PLNWxlzcfjAbWaR3NgKrfjgLAigh8jRNzA&index=2&t=11s" target="_blank" class="video-btn">動画を再生 ▶</a>
                 </div>
-                
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; background: #fff5e6; padding: 10px; border-radius: 8px;">
                     <label style="font-weight: bold;"><input type="checkbox" class="home-check" value="肩" style="transform: scale(1.3); margin-right: 8px;">肩</label>
                     <a href="https://www.youtube.com/watch?v=wpKUHfReW-0&list=PLNWxlzcfjAbWaR3NgKrfjgLAigh8jRNzA&index=3" target="_blank" class="video-btn">動画を再生 ▶</a>
                 </div>
-                
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; background: #fff5e6; padding: 10px; border-radius: 8px;">
                     <label style="font-weight: bold;"><input type="checkbox" class="home-check" value="腹筋" style="transform: scale(1.3); margin-right: 8px;">腹筋</label>
                     <a href="https://www.youtube.com/watch?v=yfF-Q2NhVnE&list=PLNWxlzcfjAbWaR3NgKrfjgLAigh8jRNzA&index=5" target="_blank" class="video-btn">動画を再生 ▶</a>
@@ -135,7 +144,6 @@
 <script>
     let currentSituation = 'ジム';
 
-    // 初期データ構造（オブジェクト型に変更）
     const defaultPresets = [
         { name: "ベンチプレス", weight: "", reps: "10", sets: "3" },
         { name: "ダンベルプレス", weight: "", reps: "10", sets: "3" },
@@ -143,32 +151,41 @@
     ];
 
     window.onload = function() {
-        migrateOldPresets(); // 古い文字列データがあれば新形式に変換
+        migrateOldPresets();
+        migrateOldBodyLogs(); // タニタデータの初期仕込み
         renderAll();
     };
 
-    // 古いデータ構造からの移行処理
     function migrateOldPresets() {
         let presets = JSON.parse(localStorage.getItem('gymPresetsObj'));
         if (!presets) {
-            // もし昔のデータ(presetsStructured)が残っていれば移行する
-            const old = JSON.parse(localStorage.getItem('presetsStructured'));
-            if (old && old["ジム"] && typeof old["ジム"][0] === 'string') {
-                presets = old["ジム"].map(n => ({ name: n, weight: "", reps: "10", sets: "3" }));
-            } else {
-                presets = defaultPresets;
-            }
+            presets = defaultPresets;
             localStorage.setItem('gymPresetsObj', JSON.stringify(presets));
+        }
+    }
+
+    // タニタデータをローカルストレージの初期値として保存する
+    function migrateOldBodyLogs() {
+        let logs = JSON.parse(localStorage.getItem('bodyDataObj'));
+        if (!logs) {
+            logs = [{ date: "2026-06-17", weight: "59.3", fat: "11.7", muscle: "49.7" }];
+            localStorage.setItem('bodyDataObj', JSON.stringify(logs));
         }
     }
 
     function showPage(page) {
         document.getElementById('listPage').style.display = page === 'list' ? 'block' : 'none';
+        document.getElementById('analysisPage').style.display = page === 'analysis' ? 'block' : 'none';
         document.getElementById('settingsPage').style.display = page === 'settings' ? 'block' : 'none';
+        
         if(page === 'settings') renderSettings();
+        if(page === 'analysis') {
+            renderBodyLogs();
+            document.getElementById('bodyLogDate').value = new Date().toISOString().split('T')[0];
+        }
     }
 
-    // ====== 設定画面の描画（インライン編集 A案） ======
+    // ====== 設定画面の制御（インライン編集型） ======
     function renderSettings() {
         const list = document.getElementById('gymPresetList');
         list.innerHTML = '';
@@ -176,15 +193,15 @@
         
         presets.forEach((p, index) => {
             list.innerHTML += `
-                <div style="background: #f9f9f9; padding: 10px; border-radius: 8px; margin-bottom: 8px; border: 1px solid #eee;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                <div style="background: #f9f9f9; padding: 12px; border-radius: 8px; margin-bottom: 8px; border: 1px solid #eee;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                         <strong style="font-size: 14px;">${p.name}</strong>
                         <button onclick="deleteGymPreset(${index})" style="background:#ff3b30; padding:4px 8px; font-size:10px;">削除</button>
                     </div>
-                    <div style="display: flex; gap: 5px; align-items: center;">
-                        <input type="number" class="inline-input" style="width: 50px;" placeholder="重量" value="${p.weight}" onchange="updateGymPreset(${index}, 'weight', this.value)"> kg / 
-                        <input type="number" class="inline-input" style="width: 40px;" placeholder="回数" value="${p.reps}" onchange="updateGymPreset(${index}, 'reps', this.value)"> 回 / 
-                        <input type="number" class="inline-input" style="width: 40px;" placeholder="セット" value="${p.sets}" onchange="updateGymPreset(${index}, 'sets', this.value)"> Set
+                    <div style="display: flex; gap: 5px; align-items: center; font-size: 12px;">
+                        <input type="number" class="inline-input" style="width: 55px;" placeholder="重量" value="${p.weight}" onchange="updateGymPreset(${index}, 'weight', this.value)"> kg
+                        <input type="number" class="inline-input" style="width: 45px;" placeholder="回数" value="${p.reps}" onchange="updateGymPreset(${index}, 'reps', this.value)"> 回
+                        <input type="number" class="inline-input" style="width: 45px;" placeholder="Set" value="${p.sets}" onchange="updateGymPreset(${index}, 'sets', this.value)"> Set
                     </div>
                 </div>
             `;
@@ -214,20 +231,66 @@
         renderSettings();
     }
 
-    // ====== モーダル（記録画面）の制御 ======
+    // ====== 分析画面の制御 ======
+    function renderBodyLogs() {
+        const list = document.getElementById('bodyLogList');
+        list.innerHTML = '';
+        const logs = JSON.parse(localStorage.getItem('bodyDataObj')) || [];
+        
+        // 新しい順（逆順）にカードを表示
+        for (let i = logs.length - 1; i >= 0; i--) {
+            const log = logs[i];
+            list.innerHTML += `
+                <div class="card" style="padding: 15px; border-left: 6px solid #5856d6;">
+                    <small style="color: #8e8e93;">${log.date}</small>
+                    <div style="display: flex; justify-content: space-between; margin-top: 8px; font-weight: bold; font-size: 14px;">
+                        <span>体重: ${log.weight} kg</span>
+                        <span>体脂肪: ${log.fat} %</span>
+                        <span>筋肉量: ${log.muscle} kg</span>
+                    </div>
+                    <button onclick="deleteBodyLog(${i})" style="background:#ff3b30; padding:3px 8px; font-size:10px; margin-top: 10px; float: right;">削除</button>
+                    <div style="clear: both;"></div>
+                </div>
+            `;
+        }
+    }
+
+    function addBodyLog() {
+        const date = document.getElementById('bodyLogDate').value;
+        const weight = document.getElementById('bodyWeight').value;
+        const fat = document.getElementById('bodyFat').value;
+        const muscle = document.getElementById('bodyMuscle').value;
+        
+        if(!date || !weight || !fat || !muscle) return alert("全て入力してください");
+        
+        const logs = JSON.parse(localStorage.getItem('bodyDataObj')) || [];
+        logs.push({ date, weight, fat, muscle });
+        localStorage.setItem('bodyDataObj', JSON.stringify(logs));
+        
+        document.getElementById('bodyWeight').value = '';
+        document.getElementById('bodyFat').value = '';
+        document.getElementById('bodyMuscle').value = '';
+        renderBodyLogs();
+    }
+
+    document.body.addEventListener('click', function(e) {
+        if(e.target && e.target.classList.contains('del-body-btn')) {
+             
+        }
+    });
+
+    function deleteBodyLog(index) {
+        if(!confirm("本当に削除しますか？")) return;
+        const logs = JSON.parse(localStorage.getItem('bodyDataObj')) || [];
+        logs.splice(index, 1);
+        localStorage.setItem('bodyDataObj', JSON.stringify(logs));
+        renderBodyLogs();
+    }
+
+    // ====== 記録用モーダルの制御 ======
     function openModal() {
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById('recordDate').value = today;
-        
-        // 入力のリセット
-        document.getElementById('exerciseName').value = '';
-        document.getElementById('weight').value = '';
-        document.getElementById('reps').value = '';
-        document.getElementById('sets').value = '';
-        
-        // チェックボックスのリセット
+        document.getElementById('recordDate').value = new Date().toISOString().split('T')[0];
         document.querySelectorAll('.home-check').forEach(cb => cb.checked = false);
-        
         selectSituation('ジム');
         document.getElementById('modal').style.display = 'block';
     }
@@ -242,7 +305,7 @@
             tabHome.classList.remove('active', 'home');
             document.getElementById('gymInputArea').style.display = 'block';
             document.getElementById('homeInputArea').style.display = 'none';
-            renderPresetButtonsModal();
+            renderPresetCheckboxesModal();
         } else {
             tabHome.classList.add('active', 'home');
             tabGym.classList.remove('active', 'gym');
@@ -251,27 +314,29 @@
         }
     }
 
-    function renderPresetButtonsModal() {
-        const container = document.getElementById('presetButtonsArea');
+    // ジム用：チェックボックス＋デフォルト入力エリアを自動生成する（Q1：A案）
+    function renderPresetCheckboxesModal() {
+        const container = document.getElementById('presetCheckboxesArea');
         container.innerHTML = '';
         const presets = JSON.parse(localStorage.getItem('gymPresetsObj')) || [];
         
         presets.forEach((p, index) => {
-            // ボタンを押すと、その種目に紐づいたデフォルト値が自動で入力される
-            container.innerHTML += `<button class="preset-btn" onclick="applyGymPreset(${index})">${p.name}</button>`;
+            container.innerHTML += `
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; background: #e5f1ff; padding: 10px; border-radius: 8px; flex-wrap: wrap;">
+                    <label style="font-weight: bold; min-width: 120px; flex: 1; cursor:pointer;">
+                        <input type="checkbox" class="gym-check" value="${p.name}" data-index="${index}" style="transform: scale(1.3); margin-right: 8px;">${p.name}
+                    </label>
+                    <div style="display: flex; align-items: center; gap: 5px; font-size: 13px;">
+                        <input type="number" id="gymWeight_${index}" value="${p.weight}" style="width: 55px;" class="inline-input"> kg
+                        <input type="number" id="gymReps_${index}" value="${p.reps}" style="width: 45px;" class="inline-input"> 回
+                        <input type="number" id="gymSets_${index}" value="${p.sets}" style="width: 45px;" class="inline-input"> Set
+                    </div>
+                </div>
+            `;
         });
     }
 
-    function applyGymPreset(index) {
-        const presets = JSON.parse(localStorage.getItem('gymPresetsObj'));
-        const p = presets[index];
-        document.getElementById('exerciseName').value = p.name;
-        document.getElementById('weight').value = p.weight;
-        document.getElementById('reps').value = p.reps;
-        document.getElementById('sets').value = p.sets;
-    }
-
-    // ====== 記録の保存と描画 ======
+    // ====== データの保存と描画（一括処理） ======
     function renderAll() {
         renderCards();
         updateChart();
@@ -281,10 +346,8 @@
         const list = document.getElementById('cardList');
         list.innerHTML = '';
         const data = JSON.parse(localStorage.getItem('trainingData') || '[]');
-        
         data.forEach((item, index) => {
-            const situation = item.situation || 'none';
-            addCard(item, index, situation);
+            addCard(item, index, item.situation || 'none');
         });
     }
 
@@ -294,7 +357,6 @@
         
         data.forEach(item => {
             const dateKey = item.date;
-            // 家トレの場合は重量が保存されていないので負荷は0として扱う
             const vol = (Number(item.weight) || 0) * (Number(item.reps) || 0) * (Number(item.sets) || 0);
             if(!aggregated[dateKey]) aggregated[dateKey] = 0;
             aggregated[dateKey] += vol;
@@ -314,25 +376,35 @@
 
     function addRecord() {
         const date = document.getElementById('recordDate').value;
+        if(!date) return alert("日付を入力してください");
         const data = JSON.parse(localStorage.getItem('trainingData') || '[]');
 
         if (currentSituation === 'ジム') {
-            const name = document.getElementById('exerciseName').value;
-            const weight = document.getElementById('weight').value;
-            const reps = document.getElementById('reps').value;
-            const sets = document.getElementById('sets').value;
-
-            if(!date || !name || !weight || !reps || !sets) return alert("全て入力してください");
-            data.push({ date, name, weight, reps, sets, situation: 'ジム' });
+            const checkedBoxes = document.querySelectorAll('.gym-check:checked');
+            if (checkedBoxes.length === 0) return alert("実施した種目にチェックを入れてください");
+            
+            let hasError = false;
+            checkedBoxes.forEach(cb => {
+                const index = cb.getAttribute('data-index');
+                const name = cb.value;
+                const weight = document.getElementById(`gymWeight_${index}`).value;
+                const reps = document.getElementById(`gymReps_${index}`).value;
+                const sets = document.getElementById(`gymSets_${index}`).value;
+                
+                if(!name || !weight || !reps || !sets) {
+                    hasError = true;
+                } else {
+                    data.push({ date, name, weight, reps, sets, situation: 'ジム' });
+                }
+            });
+            if(hasError) return alert("チェックした種目の重量・回数・セット数を正しく入力してください");
 
         } else {
-            // 家トレの場合の保存ロジック
             const checkedBoxes = document.querySelectorAll('.home-check:checked');
             if (checkedBoxes.length === 0) return alert("実施した動画にチェックを入れてください");
             
-            // チェックされた動画の名前を「、」で結合
             const doneVideos = Array.from(checkedBoxes).map(cb => cb.value).join('、');
-            data.push({ date, name: doneVideos, situation: '家' }); // 重量は記録しない
+            data.push({ date, name: doneVideos, situation: '家' });
         }
 
         localStorage.setItem('trainingData', JSON.stringify(data));
@@ -348,7 +420,6 @@
         
         const labelStr = situation !== 'none' ? `<span style="font-size:10px; padding:2px 6px; background:${situation === '家' ? '#ffe0b2' : '#e5f1ff'}; color:${situation === '家' ? '#d84315' : '#007aff'}; border-radius:4px; margin-left:10px;">${situation}</span>` : '';
         
-        // 状況によって表示するカードの中身を切り替える（Q1：A案）
         if (situation === '家') {
             newCard.innerHTML = `
                 <small style="color: #8e8e93;">${item.date}</small>${labelStr}
