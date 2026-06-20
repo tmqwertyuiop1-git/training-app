@@ -9,7 +9,15 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background-color: #f2f2f7; padding-bottom: 80px; }
         header { background: #000; color: #fff; padding: 20px; text-align: center; font-weight: bold; }
         .container { padding: 15px; }
-        .card { background: #fff; padding: 20px; margin-bottom: 12px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        
+        /* カードの基本スタイル */
+        .card { background: #fff; padding: 20px; margin-bottom: 12px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: relative; overflow: hidden; }
+        
+        /* 付箋風の色分けスタイル */
+        .card.gym { border-left: 6px solid #007aff; }   /* ジムは青 */
+        .card.home { border-left: 6px solid #ff9500; }  /* 家はオレンジ */
+        .card.none { border-left: 6px solid #ccc; }     /* 過去の未分類データ */
+
         .nav { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; justify-content: space-around; padding: 20px 0; border-top: 1px solid #e5e5e5; }
         button { background-color: #007aff; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 16px; font-weight: 600; }
         .preset-btn { background-color: #5856d6; padding: 5px 10px; font-size: 12px; margin: 2px; }
@@ -22,6 +30,14 @@
         }
         .warmup-icon { font-size: 32px; display: block; margin-bottom: 5px; }
         .warmup-label { font-size: 12px; font-weight: bold; color: #666; }
+
+        /* タブ切り替えボタンのスタイル */
+        .tab-container { display: flex; margin-bottom: 15px; border-radius: 8px; overflow: hidden; border: 1px solid #ccc; }
+        .tab-btn { flex: 1; padding: 10px; text-align: center; font-weight: bold; font-size: 14px; background-color: #f2f2f7; color: #333; transition: 0.2s; }
+        .tab-btn.active.gym { background-color: #007aff; color: white; }
+        .tab-btn.active.home { background-color: #ff9500; color: white; }
+        
+        .video-btn { background-color: #ffe0b2; color: #d84315; padding: 8px 12px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -58,10 +74,17 @@
         </div>
 
         <div class="card">
-            <h3>種目プリセット追加</h3>
-            <input type="text" id="newPreset" placeholder="種目名" style="padding: 10px; width: 60%; box-sizing: border-box; border: 1px solid #ccc; border-radius: 5px;">
-            <button onclick="addPreset()">追加</button>
+            <h3>【ジム】種目プリセット追加</h3>
+            <input type="text" id="newPresetGym" placeholder="種目名" style="padding: 10px; width: 60%; box-sizing: border-box; border: 1px solid #ccc; border-radius: 5px;">
+            <button onclick="addPreset('ジム')">追加</button>
         </div>
+
+        <div class="card">
+            <h3>【家】種目プリセット追加</h3>
+            <input type="text" id="newPresetHome" placeholder="種目名" style="padding: 10px; width: 60%; box-sizing: border-box; border: 1px solid #ccc; border-radius: 5px;">
+            <button onclick="addPreset('家')">追加</button>
+        </div>
+
         <div id="presetList"></div>
     </div>
 
@@ -72,15 +95,30 @@
     </div>
 
     <div id="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5);">
-        <div style="background: white; margin: 20% auto; padding: 20px; width: 85%; border-radius: 12px;">
-            <h3>新規記録</h3>
-            <div id="presetButtons" style="margin-bottom: 10px;"></div>
+        <div style="background: white; margin: 15% auto; padding: 20px; width: 85%; border-radius: 12px; max-height: 80%; overflow-y: auto;">
+            
+            <div class="tab-container">
+                <div id="tabGym" class="tab-btn active gym" onclick="selectSituation('ジム')">🏢 ジム</div>
+                <div id="tabHome" class="tab-btn" onclick="selectSituation('家')">🏠 家</div>
+            </div>
+            
+            <div id="homeVideoArea" style="display: none; margin-bottom: 15px; padding: 10px; background: #fff5e6; border-radius: 8px;">
+                <div style="font-size: 12px; font-weight: bold; color: #ff9500; margin-bottom: 8px;">📺 家トレ用動画</div>
+                <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                    <a href="https://www.youtube.com/watch?v=Fx12MRw9bqw&list=PLNWxlzcfjAbWaR3NgKrfjgLAigh8jRNzA&index=1" target="_blank" class="video-btn">腕</a>
+                    <a href="https://www.youtube.com/watch?v=_qZccBRFm6I&list=PLNWxlzcfjAbWaR3NgKrfjgLAigh8jRNzA&index=2&t=11s" target="_blank" class="video-btn">背中</a>
+                    <a href="https://www.youtube.com/watch?v=wpKUHfReW-0&list=PLNWxlzcfjAbWaR3NgKrfjgLAigh8jRNzA&index=3" target="_blank" class="video-btn">肩</a>
+                    <a href="https://www.youtube.com/watch?v=yfF-Q2NhVnE&list=PLNWxlzcfjAbWaR3NgKrfjgLAigh8jRNzA&index=5" target="_blank" class="video-btn">腹筋</a>
+                </div>
+            </div>
+
+            <div id="presetButtonsArea" style="margin-bottom: 15px;"></div>
             
             <input type="date" id="recordDate" style="width: 100%; margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
-            <input type="text" id="exerciseName" placeholder="種目名" style="width: 100%; margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
+            <input type="text" id="exerciseName" placeholder="追加種目名（例：サイドレイズ）" style="width: 100%; margin-bottom: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
             
             <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <input type="number" id="weight" placeholder="重量(kg)" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
+                <input type="number" id="weight" placeholder="重量" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
                 <input type="number" id="reps" placeholder="回数" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
                 <input type="number" id="sets" placeholder="セット" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
             </div>
@@ -91,6 +129,15 @@
     </div>
 
 <script>
+    // 現在選択されているシチュエーションを保持
+    let currentSituation = 'ジム';
+
+    // 初期データの定義（家にはサイドレイズ・ショルダープレスを追加）
+    const defaultPresets = {
+        "ジム": ["ベンチプレス", "ダンベルプレス", "チェストプレス"],
+        "家": ["ダンベルプレス", "サイドレイズ", "ショルダープレス"]
+    };
+
     window.onload = function() { renderAll(); };
 
     function showPage(page) {
@@ -102,7 +149,31 @@
         }
     }
 
-    // デフォルト値の読み込みと設定画面への反映
+    // シチュエーションの切り替え関数
+    function selectSituation(sit) {
+        currentSituation = sit;
+        
+        // タブの見た目変更
+        const tabGym = document.getElementById('tabGym');
+        const tabHome = document.getElementById('tabHome');
+        
+        if (sit === 'ジム') {
+            tabGym.classList.add('active', 'gym');
+            tabHome.classList.remove('active', 'home');
+            document.getElementById('homeVideoArea').style.display = 'none';
+        } else {
+            tabHome.classList.add('active', 'home');
+            tabGym.classList.remove('active', 'gym');
+            document.getElementById('homeVideoArea').style.display = 'block';
+        }
+        
+        // 入力欄を空にする
+        document.getElementById('exerciseName').value = '';
+        
+        // プリセットボタンの再描画
+        renderPresetButtonsModal();
+    }
+
     function loadDefaultsToSettings() {
         const defs = JSON.parse(localStorage.getItem('defaultValues') || '{"weight":"", "reps":"10", "sets":"3"}');
         document.getElementById('settingDefaultWeight').value = defs.weight;
@@ -110,7 +181,6 @@
         document.getElementById('settingDefaultSets').value = defs.sets;
     }
 
-    // デフォルト値の保存
     function saveDefaults() {
         const w = document.getElementById('settingDefaultWeight').value;
         const r = document.getElementById('settingDefaultReps').value;
@@ -123,11 +193,13 @@
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('recordDate').value = today;
         
-        // 保存されたデフォルト値を呼び出してセットする
         const defs = JSON.parse(localStorage.getItem('defaultValues') || '{"weight":"", "reps":"10", "sets":"3"}');
         document.getElementById('weight').value = defs.weight;
         document.getElementById('reps').value = defs.reps;
         document.getElementById('sets').value = defs.sets;
+        
+        // 開いた時は必ず「ジム」を初期状態にする（使い勝手が良ければ後で変更可能）
+        selectSituation('ジム');
         
         document.getElementById('modal').style.display = 'block';
     }
@@ -135,44 +207,64 @@
     function renderAll() {
         renderCards();
         updateChart();
-        renderPresetButtons();
     }
 
-    function renderPresetButtons() {
-        const container = document.getElementById('presetButtons');
+    // 選択中のシチュエーションに応じたプリセットボタンだけを描画する
+    function renderPresetButtonsModal() {
+        const container = document.getElementById('presetButtonsArea');
         container.innerHTML = '';
-        const presets = JSON.parse(localStorage.getItem('presets') || '["ベンチプレス", "スクワット"]');
-        presets.forEach(name => {
-            container.innerHTML += `<button class="preset-btn" onclick="document.getElementById('exerciseName').value='${name}'">${name}</button>`;
-        });
+        const presets = JSON.parse(localStorage.getItem('presetsStructured') || JSON.stringify(defaultPresets));
+        
+        if(presets[currentSituation]) {
+            presets[currentSituation].forEach(name => {
+                // 家の時はボタンの色を少しオレンジっぽくする
+                const btnColor = currentSituation === '家' ? '#ff9500' : '#007aff';
+                container.innerHTML += `<button class="preset-btn" style="background-color: ${btnColor};" onclick="document.getElementById('exerciseName').value='${name}'">${name}</button>`;
+            });
+        }
     }
 
     function renderPresets() {
         const list = document.getElementById('presetList');
         list.innerHTML = '<h3>登録種目一覧</h3>';
-        const presets = JSON.parse(localStorage.getItem('presets') || '["ベンチプレス", "スクワット"]');
-        presets.forEach((name, index) => {
-            list.innerHTML += `<div class="card">${name} <button onclick="deletePreset(${index})" style="background:#ff3b30; float:right;">削除</button></div>`;
-        });
+        const presets = JSON.parse(localStorage.getItem('presetsStructured') || JSON.stringify(defaultPresets));
+        
+        list.innerHTML += `<h4>ジム設定</h4>`;
+        if(presets["ジム"]) {
+            presets["ジム"].forEach((name, index) => {
+                list.innerHTML += `<div class="card" style="padding:10px; margin-bottom:5px;">${name} <button onclick="deletePreset('ジム', ${index})" style="background:#ff3b30; float:right; padding:2px 8px; font-size:12px;">削除</button></div>`;
+            });
+        }
+        
+        list.innerHTML += `<h4 style="margin-top:15px;">家設定</h4>`;
+        if(presets["家"]) {
+            presets["家"].forEach((name, index) => {
+                list.innerHTML += `<div class="card" style="padding:10px; margin-bottom:5px;">${name} <button onclick="deletePreset('家', ${index})" style="background:#ff3b30; float:right; padding:2px 8px; font-size:12px;">削除</button></div>`;
+            });
+        }
     }
 
-    function addPreset() {
-        const name = document.getElementById('newPreset').value;
+    function addPreset(situation) {
+        const inputId = situation === 'ジム' ? 'newPresetGym' : 'newPresetHome';
+        const name = document.getElementById(inputId).value;
         if(!name) return;
-        const presets = JSON.parse(localStorage.getItem('presets') || '[]');
-        presets.push(name);
-        localStorage.setItem('presets', JSON.stringify(presets));
-        document.getElementById('newPreset').value = '';
+        
+        const presets = JSON.parse(localStorage.getItem('presetsStructured') || JSON.stringify(defaultPresets));
+        if(!presets[situation]) presets[situation] = [];
+        presets[situation].push(name);
+        
+        localStorage.setItem('presetsStructured', JSON.stringify(presets));
+        document.getElementById(inputId).value = '';
         renderPresets();
-        renderPresetButtons();
     }
 
-    function deletePreset(index) {
-        const presets = JSON.parse(localStorage.getItem('presets') || '[]');
-        presets.splice(index, 1);
-        localStorage.setItem('presets', JSON.stringify(presets));
-        renderPresets();
-        renderPresetButtons();
+    function deletePreset(situation, index) {
+        const presets = JSON.parse(localStorage.getItem('presetsStructured') || JSON.stringify(defaultPresets));
+        if(presets[situation]) {
+            presets[situation].splice(index, 1);
+            localStorage.setItem('presetsStructured', JSON.stringify(presets));
+            renderPresets();
+        }
     }
 
     function renderCards() {
@@ -181,26 +273,21 @@
         const data = JSON.parse(localStorage.getItem('trainingData') || '[]');
         data.forEach((item, index) => {
             const sets = item.sets || 3;
-            addCard(item.date, item.name, item.weight, item.reps, sets, index);
+            const situation = item.situation || 'none'; // 古いデータは'none'として扱う
+            addCard(date=item.date, name=item.name, weight=item.weight, reps=item.reps, sets=sets, situation=situation, index=index);
         });
     }
 
     function updateChart() {
         const data = JSON.parse(localStorage.getItem('trainingData') || '[]');
-        
-        // 日付ごとに総負荷量を集計するロジック
         const aggregated = {};
         data.forEach(item => {
-            // 日付をキーにする（YYYY-MM-DD や YYYY/MM/DD の形式）
             const dateKey = item.date;
-            // 過去のデータでエラーが出ないように数値化、なければ0とする
             const vol = (Number(item.weight) || 0) * (Number(item.reps) || 0) * (Number(item.sets) || 3);
-            
             if(!aggregated[dateKey]) aggregated[dateKey] = 0;
             aggregated[dateKey] += vol;
         });
 
-        // 日付順に並び替える
         const sortedDates = Object.keys(aggregated).sort();
         const values = sortedDates.map(dateKey => aggregated[dateKey]);
 
@@ -223,22 +310,30 @@
         if(!date || !name || !weight || !reps || !sets) return alert("全て入力してください");
 
         const data = JSON.parse(localStorage.getItem('trainingData') || '[]');
-        data.push({ date, name, weight, reps, sets });
+        // 保存時に現在選んでいるシチュエーション（ジムか家か）も一緒に記録する
+        data.push({ date, name, weight, reps, sets, situation: currentSituation });
         localStorage.setItem('trainingData', JSON.stringify(data));
 
         document.getElementById('modal').style.display = 'none';
         renderAll();
     }
 
-    function addCard(date, name, weight, reps, sets, index) {
+    function addCard(date, name, weight, reps, sets, situation, index) {
         const list = document.getElementById('cardList');
         const newCard = document.createElement('div');
-        newCard.className = 'card';
+        
+        // CSSのクラスを使って付箋の色分けを行う（gym, home, none）
+        const situationClass = situation === 'ジム' ? 'gym' : (situation === '家' ? 'home' : 'none');
+        newCard.className = `card ${situationClass}`;
+        
+        // カード内に「どこでやったか」の小さなラベルも表示する
+        const labelStr = situation !== 'none' ? `<span style="font-size:10px; padding:2px 6px; background:#eee; border-radius:4px; margin-left:10px;">${situation}</span>` : '';
+        
         newCard.innerHTML = `
-            <small style="color: #8e8e93;">${date}</small>
-            <h3>${name}</h3>
-            <p>${weight}kg / ${reps}回 / ${sets}セット</p>
-            <button onclick="deleteRecord(${index})" style="background-color: #ff3b30; color: white; border: none; padding: 5px 10px; border-radius: 5px; font-size: 12px;">削除</button>
+            <small style="color: #8e8e93;">${date}</small>${labelStr}
+            <h3 style="margin: 8px 0;">${name}</h3>
+            <p style="margin: 0;">${weight}kg / ${reps}回 / ${sets}セット</p>
+            <button onclick="deleteRecord(${index})" style="position: absolute; right: 20px; top: 20px; background-color: #ff3b30; color: white; border: none; padding: 5px 10px; border-radius: 5px; font-size: 12px;">削除</button>
         `;
         list.appendChild(newCard);
     }
