@@ -120,14 +120,22 @@
             
             <input type="date" id="recordDate" style="width: 100%; margin-bottom: 15px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;">
             
-            <div class="file-input-wrapper">
-                <label>📷 トレーニング写真を添付 (任意)</label>
-                <input type="file" id="workoutImage" accept="image/*">
-            </div>
-
             <div id="gymInputArea">
-                <p style="font-size: 14px; font-weight: bold; margin-top: 0; color: #007aff;">今日実施した種目をチェック：</p>
-                <div id="presetCheckboxesArea" style="margin-bottom: 15px;"></div>
+                <div id="gymNormalArea">
+                    <p style="font-size: 14px; font-weight: bold; margin-top: 0; color: #007aff;">今日実施した種目をチェック：</p>
+                    <div id="presetCheckboxesArea" style="margin-bottom: 15px;"></div>
+                </div>
+                <div id="gymEditArea" style="display: none; margin-bottom: 15px;">
+                    <p style="font-size: 14px; font-weight: bold; margin-top: 0; color: #007aff;">種目を編集：</p>
+                    <div style="background: #e5f1ff; padding: 10px; border-radius: 8px;">
+                        <div id="editGymName" style="font-weight: bold; margin-bottom: 8px; color: #333;"></div>
+                        <div style="display: flex; align-items: center; gap: 5px; font-size: 13px;">
+                            <input type="number" id="editGymWeight" style="width: 55px;" class="inline-input"> kg
+                            <input type="number" id="editGymReps" style="width: 45px;" class="inline-input"> 回
+                            <input type="number" id="editGymSets" style="width: 45px;" class="inline-input"> Set
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div id="homeInputArea" style="display: none; margin-bottom: 15px;">
@@ -150,13 +158,14 @@
                 </div>
             </div>
             
-            <button onclick="addRecord()" style="width: 100%;">保存する</button>
+            <button id="submitBtn" onclick="addRecord()" style="width: 100%;">保存する</button>
             <button onclick="document.getElementById('modal').style.display='none'" style="width: 100%; margin-top: 10px; background-color: #ccc;">閉じる</button>
         </div>
     </div>
 
 <script>
     let currentSituation = 'ジム';
+    let editIndex = null; // 編集中のデータのインデックスを保持（nullなら新規登録）
 
     const defaultPresets = [
         { name: "ベンチプレス", weight: "", reps: "10", sets: "3" },
@@ -186,7 +195,7 @@
         }
     }
 
-    // ====== 画像圧縮処理（容量オーバーを防ぐ裏技） ======
+    // ====== 画像圧縮処理（体組成用） ======
     async function compressImage(fileInputId) {
         const fileInput = document.getElementById(fileInputId);
         if (!fileInput.files || !fileInput.files[0]) return null;
@@ -197,7 +206,7 @@
                 const img = new Image();
                 img.onload = function() {
                     const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 400; // サムネイルサイズに縮小
+                    const MAX_WIDTH = 400;
                     let width = img.width;
                     let height = img.height;
                     
@@ -210,7 +219,6 @@
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
                     
-                    // 粗めの画質(0.6)で保存し、容量を極限まで削る
                     resolve(canvas.toDataURL('image/jpeg', 0.6));
                 }
                 img.src = e.target.result;
@@ -309,7 +317,6 @@
         
         if(!date || !weight || !fat || !muscle) return alert("全て入力してください");
         
-        // 画像を圧縮処理して取得
         const photoData = await compressImage('bodyImage');
         
         const logs = JSON.parse(localStorage.getItem('bodyDataObj')) || [];
@@ -331,11 +338,50 @@
         renderBodyLogs();
     }
 
+    // ====== 記録モーダルを開く（新規登録モード） ======
     function openModal() {
+        editIndex = null; // モードクリア
         document.getElementById('recordDate').value = new Date().toISOString().split('T')[0];
         document.querySelectorAll('.home-check').forEach(cb => cb.checked = false);
-        document.getElementById('workoutImage').value = ''; // ファイル選択をリセット
+        
+        // UIの初期化
+        document.getElementById('gymNormalArea').style.display = 'block';
+        document.getElementById('gymEditArea').style.display = 'none';
+        document.querySelector('.tab-container').style.display = 'flex';
+        document.getElementById('submitBtn').innerText = '保存する';
+        
         selectSituation('ジム');
+        document.getElementById('modal').style.display = 'block';
+    }
+
+    // ====== 過去履歴の編集モードを起動 ======
+    function editRecord(index) {
+        editIndex = index;
+        const data = JSON.parse(localStorage.getItem('trainingData') || '[]');
+        const item = data[index];
+        
+        document.getElementById('recordDate').value = item.date;
+        document.getElementById('submitBtn').innerText = '更新する';
+        
+        // 編集時は誤動作を防ぐため、状況(ジム/家)のタブ切り替えを非表示にする
+        document.querySelector('.tab-container').style.display = 'none';
+        
+        selectSituation(item.situation || 'ジム');
+        
+        if (item.situation === 'ジム') {
+            document.getElementById('gymNormalArea').style.display = 'none';
+            document.getElementById('gymEditArea').style.display = 'block';
+            document.getElementById('editGymName').innerText = item.name;
+            document.getElementById('editGymWeight').value = item.weight;
+            document.getElementById('editGymReps').value = item.reps;
+            document.getElementById('editGymSets').value = item.sets || '3';
+        } else {
+            const videos = (item.name || '').split('、');
+            document.querySelectorAll('.home-check').forEach(cb => {
+                cb.checked = videos.includes(cb.value);
+            });
+        }
+        
         document.getElementById('modal').style.display = 'block';
     }
 
@@ -349,7 +395,9 @@
             tabHome.classList.remove('active', 'home');
             document.getElementById('gymInputArea').style.display = 'block';
             document.getElementById('homeInputArea').style.display = 'none';
-            renderPresetCheckboxesModal();
+            if (editIndex === null) {
+                renderPresetCheckboxesModal();
+            }
         } else {
             tabHome.classList.add('active', 'home');
             tabGym.classList.remove('active', 'gym');
@@ -389,7 +437,6 @@
         list.innerHTML = '';
         const data = JSON.parse(localStorage.getItem('trainingData') || '[]');
         
-        // 新しい記録が上にくるように逆順でループ
         for (let i = data.length - 1; i >= 0; i--) {
             addCard(data[i], i, data[i].situation || 'none');
         }
@@ -418,42 +465,60 @@
         });
     }
 
+    // ====== データの保存・更新処理 ======
     async function addRecord() {
         const date = document.getElementById('recordDate').value;
         if(!date) return alert("日付を入力してください");
         
-        // 画像を圧縮処理して取得
-        const photoData = await compressImage('workoutImage');
-        
         const data = JSON.parse(localStorage.getItem('trainingData') || '[]');
 
-        if (currentSituation === 'ジム') {
-            const checkedBoxes = document.querySelectorAll('.gym-check:checked');
-            if (checkedBoxes.length === 0) return alert("実施した種目にチェックを入れてください");
-            
-            let hasError = false;
-            checkedBoxes.forEach(cb => {
-                const index = cb.getAttribute('data-index');
-                const name = cb.value;
-                const weight = document.getElementById(`gymWeight_${index}`).value;
-                const reps = document.getElementById(`gymReps_${index}`).value;
-                const sets = document.getElementById(`gymSets_${index}`).value;
+        if (editIndex !== null) {
+            // 【編集モードの保存ロジック】
+            const item = data[editIndex];
+            if (item.situation === 'ジム') {
+                const weight = document.getElementById('editGymWeight').value;
+                const reps = document.getElementById('editGymReps').value;
+                const sets = document.getElementById('editGymSets').value;
                 
-                if(!name || !weight || !reps || !sets) {
-                    hasError = true;
-                } else {
-                    // 画像は1つのまとまり(カード)ごとに保存する
-                    data.push({ date, name, weight, reps, sets, situation: 'ジム', photo: photoData });
-                }
-            });
-            if(hasError) return alert("チェックした種目の重量・回数・セット数を正しく入力してください");
-
+                if(!weight || !reps || !sets) return alert("重量・回数・セット数を正しく入力してください");
+                
+                data[editIndex] = { ...item, date, weight, reps, sets };
+            } else {
+                const checkedBoxes = document.querySelectorAll('.home-check:checked');
+                if (checkedBoxes.length === 0) return alert("実施した動画にチェックを入れてください");
+                
+                const doneVideos = Array.from(checkedBoxes).map(cb => cb.value).join('、');
+                data[editIndex] = { ...item, date, name: doneVideos };
+            }
         } else {
-            const checkedBoxes = document.querySelectorAll('.home-check:checked');
-            if (checkedBoxes.length === 0) return alert("実施した動画にチェックを入れてください");
-            
-            const doneVideos = Array.from(checkedBoxes).map(cb => cb.value).join('、');
-            data.push({ date, name: doneVideos, situation: '家', photo: photoData });
+            // 【新規追加モードの保存ロジック】
+            if (currentSituation === 'ジム') {
+                const checkedBoxes = document.querySelectorAll('.gym-check:checked');
+                if (checkedBoxes.length === 0) return alert("実施した種目にチェックを入れてください");
+                
+                let hasError = false;
+                checkedBoxes.forEach(cb => {
+                    const index = cb.getAttribute('data-index');
+                    const name = cb.value;
+                    const weight = document.getElementById(`gymWeight_${index}`).value;
+                    const reps = document.getElementById(`gymReps_${index}`).value;
+                    const sets = document.getElementById(`gymSets_${index}`).value;
+                    
+                    if(!name || !weight || !reps || !sets) {
+                        hasError = true;
+                    } else {
+                        data.push({ date, name, weight, reps, sets, situation: 'ジム' });
+                    }
+                });
+                if(hasError) return alert("チェックした種目の重量・回数・セット数を正しく入力してください");
+
+            } else {
+                const checkedBoxes = document.querySelectorAll('.home-check:checked');
+                if (checkedBoxes.length === 0) return alert("実施した動画にチェックを入れてください");
+                
+                const doneVideos = Array.from(checkedBoxes).map(cb => cb.value).join('、');
+                data.push({ date, name: doneVideos, situation: '家' });
+            }
         }
 
         localStorage.setItem('trainingData', JSON.stringify(data));
@@ -470,12 +535,14 @@
         const labelStr = situation !== 'none' ? `<span style="font-size:10px; padding:2px 6px; background:${situation === '家' ? '#ffe0b2' : '#e5f1ff'}; color:${situation === '家' ? '#d84315' : '#007aff'}; border-radius:4px; margin-left:10px;">${situation}</span>` : '';
         const imgHtml = item.photo ? `<img src="${item.photo}" style="width:100%; border-radius:8px; margin-top:10px; border:1px solid #eee;">` : '';
         
+        // 削除ボタンの左側に「編集」ボタンを配置 (right: 75px)
         if (situation === '家') {
             newCard.innerHTML = `
                 <small style="color: #8e8e93;">${item.date}</small>${labelStr}
                 <h3 style="margin: 8px 0; color: #d84315;">家トレ実施</h3>
                 <p style="margin: 0; font-weight: bold;">☑ ${item.name} を完了</p>
                 ${imgHtml}
+                <button onclick="editRecord(${index})" style="position: absolute; right: 75px; top: 20px; background-color: #34c759; color: white; border: none; padding: 5px 10px; border-radius: 5px; font-size: 12px;">編集</button>
                 <button onclick="deleteRecord(${index})" style="position: absolute; right: 20px; top: 20px; background-color: #ff3b30; color: white; border: none; padding: 5px 10px; border-radius: 5px; font-size: 12px;">削除</button>
             `;
         } else {
@@ -485,6 +552,7 @@
                 <h3 style="margin: 8px 0;">${item.name}</h3>
                 <p style="margin: 0;">${item.weight}kg / ${item.reps}回 / ${sets}セット</p>
                 ${imgHtml}
+                <button onclick="editRecord(${index})" style="position: absolute; right: 75px; top: 20px; background-color: #34c759; color: white; border: none; padding: 5px 10px; border-radius: 5px; font-size: 12px;">編集</button>
                 <button onclick="deleteRecord(${index})" style="position: absolute; right: 20px; top: 20px; background-color: #ff3b30; color: white; border: none; padding: 5px 10px; border-radius: 5px; font-size: 12px;">削除</button>
             `;
         }
