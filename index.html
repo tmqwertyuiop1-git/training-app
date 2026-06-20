@@ -13,10 +13,9 @@
         .card { background: #fff; padding: 20px; margin-bottom: 12px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: relative; cursor: pointer; }
         .card.gym { border-left: 6px solid #007aff; }
         .card.home { border-left: 6px solid #ff9500; }
-        .nav { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; justify-content: space-around; padding: 20px 0; border-top: 1px solid #e5e5e5; z-index: 100; }
+        .nav { position: fixed; bottom: 0; width: 100%; background: #fff; display: flex; justify-content: space-around; padding: 20px 0; border-top: 1px solid #e5e5e5; z-index: 100; align-items: center; }
         .nav span { font-weight: bold; color: #666; font-size: 16px; cursor: pointer; }
         button { background-color: #007aff; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; }
-        .inline-input { border: 1px solid #ccc; border-radius: 5px; padding: 6px; text-align: center; width: 60px; }
     </style>
 </head>
 <body>
@@ -69,26 +68,37 @@
     </div>
 
 <script>
-    window.onload = () => renderAll();
+    // 初期表示の安全化
+    window.onload = () => {
+        // データが壊れている可能性を考慮して初期化
+        try {
+            renderAll();
+            showPage('list');
+        } catch(e) {
+            console.error(e);
+            showPage('list');
+        }
+    };
 
     function showPage(page) {
         document.getElementById('listPage').style.display = page === 'list' ? 'block' : 'none';
         document.getElementById('analysisPage').style.display = page === 'analysis' ? 'block' : 'none';
         document.getElementById('settingsPage').style.display = page === 'settings' ? 'block' : 'none';
+        
         if(page === 'settings') renderSettings();
         if(page === 'analysis') renderBodyLogs();
     }
 
-    // --- トレーニング記録の処理 ---
+    // --- トレーニング記録 ---
     function openModal(item = null, index = -1) {
         document.getElementById('editIndex').value = index;
         document.getElementById('modalTitle').innerText = index !== -1 ? "記録編集" : "新規記録";
         document.getElementById('inputArea').innerHTML = `
-            <input type="text" id="name" value="${item ? item.name : ''}" placeholder="種目名" style="width: 100%; padding: 10px; margin-bottom: 10px;">
+            <input type="text" id="name" value="${item ? item.name : ''}" placeholder="種目名" style="width: 100%; padding: 10px; margin-bottom: 10px; box-sizing:border-box;">
             <div style="display:flex; gap:10px;">
-                <input type="number" id="weight" value="${item ? item.weight : ''}" placeholder="kg" style="flex:1; padding:10px;">
-                <input type="number" id="reps" value="${item ? item.reps : ''}" placeholder="回" style="flex:1; padding:10px;">
-                <input type="number" id="sets" value="${item ? item.sets : ''}" placeholder="Set" style="flex:1; padding:10px;">
+                <input type="number" id="weight" value="${item ? item.weight : ''}" placeholder="kg" style="flex:1; padding:10px; box-sizing:border-box;">
+                <input type="number" id="reps" value="${item ? item.reps : ''}" placeholder="回" style="flex:1; padding:10px; box-sizing:border-box;">
+                <input type="number" id="sets" value="${item ? item.sets : ''}" placeholder="Set" style="flex:1; padding:10px; box-sizing:border-box;">
             </div>
         `;
         document.getElementById('recordDate').value = item ? item.date : new Date().toISOString().split('T')[0];
@@ -97,7 +107,7 @@
 
     function saveRecord() {
         const index = parseInt(document.getElementById('editIndex').value);
-        const data = JSON.parse(localStorage.getItem('trainingData') || '[]');
+        let data = JSON.parse(localStorage.getItem('trainingData') || '[]');
         const item = {
             date: document.getElementById('recordDate').value,
             name: document.getElementById('name').value,
@@ -122,10 +132,9 @@
             div.innerHTML = `<div>${item.date}</div><h3>${item.name}</h3><p>${item.weight}kg / ${item.reps}回 / ${item.sets}セット</p>`;
             list.appendChild(div);
         });
-        updateChart();
     }
 
-    // --- 体組成分析の処理 ---
+    // --- 体組成 ---
     function renderBodyLogs() {
         const list = document.getElementById('bodyLogList');
         list.innerHTML = '';
@@ -156,12 +165,10 @@
         };
         if (index !== -1) logs[index] = newLog; else logs.push(newLog);
         localStorage.setItem('bodyDataObj', JSON.stringify(logs));
-        document.getElementById('editBodyIndex').value = "-1";
         renderBodyLogs();
     }
-
-    function updateChart() { /* 前回までのロジック */ }
-    function renderSettings() { /* 前回までのロジック */ }
+    
+    function renderSettings() {}
 </script>
 </body>
 </html>
