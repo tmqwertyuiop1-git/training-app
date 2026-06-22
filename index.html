@@ -42,11 +42,24 @@
 
     <header>
         <a href="https://www1.nesty-gcloud.net/mf-fitness/?error=2" target="_blank" class="qr-header-btn">入館QR</a>
-        筋トレ記録
+        <!-- タイトルをタップ可能に -->
+        <span onclick="showPage('list')" style="cursor:pointer;">筋トレ記録</span>
         <span class="settings-icon" onclick="showPage('settings')">⚙️</span>
     </header>
 
     <div id="listPage" class="container">
+        
+        <!-- 今月の目標と進捗バー -->
+        <div class="card" style="padding: 15px; margin-bottom: 15px;">
+            <div style="display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; margin-bottom: 8px;">
+                <span id="monthlyGoalTitle">今月の目標：トレーニング5日</span>
+                <span id="monthlyProgressText" style="color: #007aff;">0 / 5 日</span>
+            </div>
+            <div style="background: #e5e5ea; border-radius: 8px; height: 10px; overflow: hidden;">
+                <div id="monthlyProgressBar" style="background: #007aff; height: 100%; width: 0%; transition: width 0.5s ease;"></div>
+            </div>
+        </div>
+
         <canvas id="myChart" style="background: white; padding: 15px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);"></canvas>
         <div id="cardList"></div>
     </div>
@@ -87,7 +100,7 @@
         </div>
     </div>
 
-    <!-- アイコンを削除し、テキストを変更しました -->
+    <!-- アイコンなしのナビゲーション -->
     <div class="nav">
         <span onclick="showPage('list')" style="cursor:pointer;">トレーニング</span>
         <button onclick="openModal()">＋ 記録</button>
@@ -106,12 +119,10 @@
             
             <!-- ジム用入力エリア -->
             <div id="gymInputArea">
-                <!-- 通常（新規追加）時の表示 -->
                 <div id="gymNormalArea">
                     <p style="font-size: 14px; font-weight: bold; margin-top: 0; color: #007aff;">今日実施した種目をチェック：</p>
                     <div id="presetCheckboxesArea" style="margin-bottom: 15px;"></div>
                 </div>
-                <!-- 編集時の表示 -->
                 <div id="gymEditArea" style="display: none; margin-bottom: 15px;">
                     <p style="font-size: 14px; font-weight: bold; margin-top: 0; color: #007aff;">種目を編集：</p>
                     <div style="background: #e5f1ff; padding: 10px; border-radius: 8px;">
@@ -128,7 +139,6 @@
             <!-- 家トレ用入力エリア -->
             <div id="homeInputArea" style="display: none; margin-bottom: 15px;">
                 <p style="font-size: 14px; font-weight: bold; margin-top: 0; color: #ff9500;">今日実施した動画をチェック：</p>
-                <!-- 家トレの先頭にストレッチを配置 -->
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; background: #fff5e6; padding: 10px; border-radius: 8px;">
                     <label style="font-weight: bold;"><input type="checkbox" class="home-check" value="ストレッチ" style="transform: scale(1.3); margin-right: 8px;">ストレッチ</label>
                     <a href="https://youtu.be/fZJO5hYB0Tc?si=nwcTDGq9aUWLFcAD" target="_blank" class="video-btn">動画を再生 ▶</a>
@@ -434,6 +444,41 @@
     function renderAll() {
         renderCards();
         updateChart();
+        updateProgress(); // 進捗バーを更新
+    }
+
+    // 今月のトレーニング日数を計算して進捗バーを更新する機能
+    function updateProgress() {
+        const data = JSON.parse(localStorage.getItem('trainingData') || '[]');
+        const now = new Date();
+        const currentMonthPrefix = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0'); // 例: "2026-06"
+        
+        // 当月の記録から「日付」だけを抽出（同じ日の複数記録は1日としてカウント）
+        const uniqueDates = new Set();
+        data.forEach(item => {
+            if (item.date && item.date.startsWith(currentMonthPrefix)) {
+                uniqueDates.add(item.date);
+            }
+        });
+        
+        const count = uniqueDates.size;
+        const goal = 5;
+        let percent = (count / goal) * 100;
+        if (percent > 100) percent = 100;
+        
+        const monthNumber = now.getMonth() + 1;
+        document.getElementById('monthlyGoalTitle').innerText = `${monthNumber}月の目標：トレーニング5日`;
+        document.getElementById('monthlyProgressText').innerText = `${count} / ${goal} 日`;
+        document.getElementById('monthlyProgressBar').style.width = `${percent}%`;
+        
+        // 達成したら色を緑にする
+        if (count >= goal) {
+            document.getElementById('monthlyProgressBar').style.background = '#34c759';
+            document.getElementById('monthlyProgressText').style.color = '#34c759';
+        } else {
+            document.getElementById('monthlyProgressBar').style.background = '#007aff';
+            document.getElementById('monthlyProgressText').style.color = '#007aff';
+        }
     }
 
     function renderCards() {
@@ -472,7 +517,6 @@
                         detailStr = `☑ ストレッチ完了`;
                     } else {
                         const sets = r.item.sets || 3;
-                        // ここで指定通りの「・種目名： 〇〇kg / 〇〇回 / 〇〇セット」にフォーマット変更しました
                         detailStr = `・${r.item.name}： ${r.item.weight}kg / ${r.item.reps}回 / ${sets}セット`;
                     }
                     
@@ -543,19 +587,24 @@
                         label: 'ジム 総負荷量(kg)', 
                         data: gymValues, 
                         backgroundColor: '#007aff',
-                        yAxisID: 'y'
+                        yAxisID: 'y',
+                        maxBarThickness: 40 // 棒が太くなりすぎるのを防ぎ中央へ
                     },
                     { 
                         label: '家トレ 種目数', 
                         data: homeValues, 
                         backgroundColor: '#ff9500',
-                        yAxisID: 'y2'
+                        yAxisID: 'y2',
+                        maxBarThickness: 40 // 棒が太くなりすぎるのを防ぎ中央へ
                     }
                 ] 
             },
             options: { 
                 responsive: true,
                 scales: {
+                    x: {
+                        offset: true // グラフを中央に配置する設定
+                    },
                     y: {
                         type: 'linear',
                         display: true,
